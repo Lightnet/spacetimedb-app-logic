@@ -1,0 +1,14 @@
+{
+  "dev": {
+    "run": "bun run dev"
+  },
+  "database": "spacetime-app-logic",
+  "server": "maincloud",
+  "module-path": "./spacetimedb",
+  "generate": [
+    {
+      "language": "typescript",
+      "out-dir": "src/module_bindings"
+    }
+  ]
+}
