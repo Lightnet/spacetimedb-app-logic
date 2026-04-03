@@ -2,18 +2,17 @@
 // Model contact for tables
 //-----------------------------------------------
 import { table, t } from 'spacetimedb/server';
-// import { status } from '../types';
 //-----------------------------------------------
 // 
 //-----------------------------------------------
-export const sessions = table(
+export const sampleChat = table(
   { 
-    name: 'sessions', 
+    name: 'sample_chat', 
     public: true,
   },
   {
-    identity: t.identity().primaryKey(),
-    connection_id: t.connectionId().unique(),
-    connected_at: t.timestamp(),
+    pattern: t.string().unique(),
+    result: t.string().unique(),
+    created_at: t.timestamp(),
   }
 );

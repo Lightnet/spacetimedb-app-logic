@@ -2,18 +2,20 @@
 // Model contact for tables
 //-----------------------------------------------
 import { table, t } from 'spacetimedb/server';
-// import { status } from '../types';
 //-----------------------------------------------
 // 
 //-----------------------------------------------
-export const sessions = table(
+export const user = table(
   { 
-    name: 'sessions', 
+    name: 'user', 
     public: true,
   },
   {
-    identity: t.identity().primaryKey(),
-    connection_id: t.connectionId().unique(),
-    connected_at: t.timestamp(),
+    id:t.string().primaryKey(),
+    identity: t.identity().unique(),
+    name: t.string().unique(),
+    online: t.bool().default(false),
+    accent_color: t.u32().optional(),
+    created_at: t.timestamp(),
   }
 );
