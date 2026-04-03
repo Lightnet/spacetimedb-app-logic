@@ -37,26 +37,14 @@ export const update_process_data = spacetimedb.reducer({ arg: scheduleProcess.ro
   // Invoked automatically by the scheduler
   // arg.message, arg.scheduled_at, arg.scheduled_id
 
-  
-  console.log('test')
+  console.log('process data')
   ctx.db.chatMessage.insert({
     id: 0n,
     created_at: ctx.timestamp,
     text: 'test',
     who: 'system'
   });
-
-
 });
-
-
-
-
-
-
-
-
-
 
 //-----------------------------------------------
 // INIT

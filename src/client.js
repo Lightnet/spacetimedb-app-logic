@@ -131,35 +131,40 @@ function ChatWindow() {
     inputText.val = "";
   }
 
+  function onInsert_Message(ctx, row){
+    console.log(row);
+    const newMsg = {
+      id: Date.now(),
+      sender: row.who,
+      text: row.text,
+      time: row.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    messages.val = [...messages.val, newMsg];
+    // need to delay to reason array need to update.
+    setTimeout(() => {
+      scrollBottom();
+    }, 100); // 2000ms = 2 seconds
+  }
+
   function setupDBChatMessage(){
     conn.subscriptionBuilder()
       .subscribe(tables.chatMessage)
 
-    conn.db.chatMessage.onInsert((ctx, row)=>{
-      console.log(row);
-      
-      console.log(row.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
-      
-      // const milliseconds = Number(Number(row.createdAt) / 1000);
-      // console.log(milliseconds)
-      // const date = new Date(milliseconds);
-      const newMsg = {
-        id: Date.now(),
-        sender: row.who,
-        // text: inputText.val.trim(),
-        text: row.text,
-        // time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        // time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        time: row.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      messages.val = [...messages.val, newMsg];
-      setTimeout(() => {
-        scrollBottom();
-      }, 100); // 2000ms = 2 seconds
-    })
+    conn.db.chatMessage.onInsert(onInsert_Message)
   }
 
   setupDBChatMessage();
+
+  function cleanUp(){
+    conn.db.chatMessage.removeOnInsert(onInsert_Message);
+  }
+
+  van.derive(()=>{
+    console.log("closed:", closed.val)
+    if(closed.val){
+      cleanUp();
+    }
+  })
 
   function handleKeyDown(e) {
     if (e.key === "Enter" && !e.shiftKey) {

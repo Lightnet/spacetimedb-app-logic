@@ -41,3 +41,123 @@ spacetime sql --server local spacetime-app-logic "SELECT * FROM chat_message"
 
 spacetime sql --server local spacetime-app-logic "SELECT * FROM schedule_process"
 ```
+
+# Layout:
+  Simple input and output design.
+## Server:
+```ts
+export const chatMessage = table(
+  { 
+    name: 'chat_message', 
+    public: true,
+  },
+  {
+    id: t.u64().autoInc().primaryKey(),
+    who: t.string(),
+    text: t.string(),
+    created_at: t.timestamp(),
+  }
+);
+```
+- table chat message
+
+```ts
+export const send_chat_message = spacetimedb.reducer({text:t.string()}, (ctx, {text}) => {
+
+  const setFromNow = ctx.timestamp.microsSinceUnixEpoch + 1_000_000n;
+
+  ctx.db.chatMessage.insert({
+    id: 0n,
+    created_at: ctx.timestamp,
+    text: text,
+    who: 'You'
+  })
+
+  ctx.db.scheduleProcess.insert({
+    scheduled_id: 0n,
+    scheduled_at: ScheduleAt.time(setFromNow),
+    message: text
+  });
+});
+```
+- input message to scheduled
+- use for client call. 
+
+```ts
+const scheduleProcess = table(
+  { name: 'schedule_process', scheduled: (): any => update_process_data },
+  {
+    scheduled_id: t.u64().primaryKey().autoInc(),
+    scheduled_at: t.scheduleAt(),
+    message: t.string(),
+  }
+);
+```
+- scheduled table for trigger to proccess message
+
+```ts
+export const update_process_data = spacetimedb.reducer({ arg: scheduleProcess.rowType }, (ctx, { arg }) => {
+  // Invoked automatically by the scheduler
+  // arg.message, arg.scheduled_at, arg.scheduled_id
+
+  // do something to process message
+
+  console.log('process data');
+  // send to chat message table.
+  ctx.db.chatMessage.insert({
+    id: 0n,
+    created_at: ctx.timestamp,
+    text: 'test',
+    who: 'system'
+  });
+});
+```
+- scheduled call function to update and process
+
+## Client:
+```ts
+  //...
+  const messages = van.state([
+    { id: 1, sender: "System", text: "Connected to chat", time: "Now" }
+  ]);
+  //...
+
+  function onInsert_Message(ctx, row){
+    console.log(row);
+    const newMsg = {
+      id: Date.now(),
+      sender: row.who,
+      text: row.text,
+      time: row.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    messages.val = [...messages.val, newMsg];
+    setTimeout(() => {
+      scrollBottom();
+    }, 100); // 2000ms = 2 seconds
+  }
+
+  function setupDBChatMessage(){
+    conn.subscriptionBuilder()
+      .subscribe(tables.chatMessage)
+    // register function
+    conn.db.chatMessage.onInsert(onInsert_Message)
+  }
+
+  function cleanUp(){
+    // unregister function
+    conn.db.chatMessage.onInsert(onInsert_Message)
+  }
+
+  setupDBChatMessage();
+
+  van.derive(()=>{
+    // console.log("closed:", closed.val)
+    if(closed.val){
+      cleanUp();
+    }
+  })
+  //...
+```
+- setup table names listen
+- add onInsert function to chat messages
+- clean up to remove register function to prevent stacking.
