@@ -5,12 +5,10 @@ import { schema, table, t, SenderError  } from 'spacetimedb/server';
 import { sessions } from './tables/table_session';
 import { user } from './tables/table_user';
 import { messageEvent } from './tables/table_event';
-import { chatMessage } from './tables/table_chatmessage';
+import { chatMessages } from './tables/table_chatmessage';
 //-----------------------------------------------
 // 
 //-----------------------------------------------
-
-
 const scheduleProcess = table(
   { name: 'schedule_process', scheduled: (): any => update_process_data },
   {
@@ -27,7 +25,7 @@ const spacetimedb = schema({
   sessions,
   messageEvent,
   scheduleProcess,
-  chatMessage,
+  chatMessages,
 });
 
 //-----------------------------------------------
@@ -38,7 +36,7 @@ export const update_process_data = spacetimedb.reducer({ arg: scheduleProcess.ro
   // arg.message, arg.scheduled_at, arg.scheduled_id
 
   console.log('process data')
-  ctx.db.chatMessage.insert({
+  ctx.db.chatMessages.insert({
     id: 0n,
     created_at: ctx.timestamp,
     text: 'test',
@@ -73,8 +71,6 @@ export const onConnect = spacetimedb.clientConnected(ctx => {
       created_at: ctx.timestamp
     });
   }
-
-
   // ctx.connectionId is guaranteed to be defined
   const connId = ctx.connectionId!;
   // Initialize client session
@@ -102,8 +98,6 @@ export const onDisconnect = spacetimedb.clientDisconnected(ctx => {
       `Disconnect event for unknown user with identity ${ctx.sender}`
     );
   }
-
-
   // ctx.connectionId is guaranteed to be defined
   const connId = ctx.connectionId!;
   // Clean up client session

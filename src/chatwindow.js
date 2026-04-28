@@ -3,32 +3,95 @@
 
 import van from "vanjs-core";
 import { Modal, MessageBoard, FloatingWindow } from "vanjs-ui";
+import { debounce, generateName, onDetach } from "./helper";
+import { stateConn } from "./context";
+import { tables } from "./module_bindings";
 
-function ChatWindow() {
+const { div, input, textarea, button, span, img, label, p } = van.tags;
+
+export function ChatWindow() {
   const closed = van.state(false);
   const width = van.state(720);
   const height = van.state(560);
+  const messageId = van.state(generateName())
+
+  // .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  let now = new Date();
+  const timeString = now.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
 
   // Reactive states
   const messages = van.state([
-    { id: 1, sender: "System", text: "Connected to chat", time: "Now" }
+    { id: 1, sender: "System", text: "Connected to chat", time: timeString }
   ]);
 
   const inputText = van.state("");
 
   function send_message() {
     if (!inputText.val.trim()) return;
+    // const newMsg = {
+    //   id: Date.now(),
+    //   sender: "You",
+    //   text: inputText.val.trim(),
+    //   time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    // };
+    // messages.val = [...messages.val, newMsg];
+    try {
+      const conn = stateConn.val;
+      conn.reducers.sendChatMessage({
+        text:inputText.val.trim()
+      })
+    } catch (error) {
+      console.log("send chat message error!");
+      console.log(error.message);
+    }
 
-    const newMsg = {
-      id: Date.now(),
-      sender: "You",
-      text: inputText.val.trim(),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    messages.val = [...messages.val, newMsg];
     inputText.val = "";
   }
+
+  //clear timer, reset and call function
+  const scrollMessages = debounce(scrollBottom, 100);
+
+  function onInsert_Message(ctx, row){
+    console.log(row);
+    const newMsg = {
+      id: Date.now(),
+      sender: row.who,
+      text: row.text,
+      time: row.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    messages.val = [...messages.val, newMsg];
+    // need to delay to reason array need to update.
+    // setTimeout(() => {
+      // scrollBottom();
+    // }, 100); // 2000ms = 2 seconds
+    scrollMessages();
+  }
+
+  function setupDBChatMessage(){
+    const conn = stateConn.val;
+    conn.subscriptionBuilder()
+      .subscribe(tables.chatMessages);
+    conn.db.chatMessages.onInsert(onInsert_Message);
+  }
+
+  setupDBChatMessage();
+
+  function cleanUp(){
+    console.log("clean up..")
+    const conn = stateConn.val;
+    conn.db.chatMessages.removeOnInsert(onInsert_Message);
+  }
+
+  // van.derive(()=>{
+  //   console.log("closed:", closed.val)
+  //   if(closed.val){
+  //     cleanUp();
+  //   }
+  // })
 
   function handleKeyDown(e) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -37,20 +100,35 @@ function ChatWindow() {
     }
   }
 
+  function scrollBottom(){
+    const chatContainer = document.getElementById(messageId.val);
+    // console.log(chatContainer)
+    // chatContainer.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    // chatContainer.scrollTop = chatContainer.scrollHeight;
+    chatContainer.scrollTo({
+      top: chatContainer.scrollHeight,
+      behavior: 'smooth'
+    });
+  }
+
   return FloatingWindow(
     {
       title: "Chat",
       closed,
       width,
       height,
-      closeCross: true,
-      style: "background: #1f1f1f; color: #fff;"
+      // closeCross: true,
+      childrenContainerStyleOverrides:{
+        height:`calc(100% - 58px)`, // base on header height and spacing.
+      },
+      // style: "background: #1f1f1f; color: #fff;"
     },
-
-    div({ style: "display: flex; flex-direction: column; height: calc(100vh - 330px); overflow: hidden;" },
+    onDetach(cleanUp),
+    // div({ style: "display: flex; flex-direction: column; height: calc(560px - 64px); overflow: hidden;" },
+    div({ style: "display: flex; flex-direction: column; height: 100%; overflow: hidden;" },
 
       // === Messages Area ===
-      div({
+      div({id:messageId.val,
         style: `
           flex: 1;                    /* This makes it take all available space */
           min-height: 0;              /* Important fix for flex + overflow */

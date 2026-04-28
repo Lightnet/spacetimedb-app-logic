@@ -5,9 +5,9 @@ import { table, t } from 'spacetimedb/server';
 //-----------------------------------------------
 // 
 //-----------------------------------------------
-export const chatMessage = table(
+export const chatMessages = table(
   { 
-    name: 'chat_message', 
+    name: 'chat_messages',
     public: true,
   },
   {

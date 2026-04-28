@@ -46,9 +46,9 @@ spacetime sql --server local spacetime-app-logic "SELECT * FROM schedule_process
   Simple input and output design.
 ## Server:
 ```ts
-export const chatMessage = table(
+export const chatMessages = table(
   { 
-    name: 'chat_message', 
+    name: 'chat_messages', 
     public: true,
   },
   {
@@ -66,7 +66,7 @@ export const send_chat_message = spacetimedb.reducer({text:t.string()}, (ctx, {t
 
   const setFromNow = ctx.timestamp.microsSinceUnixEpoch + 1_000_000n;
 
-  ctx.db.chatMessage.insert({
+  ctx.db.chatMessages.insert({
     id: 0n,
     created_at: ctx.timestamp,
     text: text,
@@ -104,7 +104,7 @@ export const update_process_data = spacetimedb.reducer({ arg: scheduleProcess.ro
 
   console.log('process data');
   // send to chat message table.
-  ctx.db.chatMessage.insert({
+  ctx.db.chatMessages.insert({
     id: 0n,
     created_at: ctx.timestamp,
     text: 'test',
@@ -138,14 +138,14 @@ export const update_process_data = spacetimedb.reducer({ arg: scheduleProcess.ro
 
   function setupDBChatMessage(){
     conn.subscriptionBuilder()
-      .subscribe(tables.chatMessage)
+      .subscribe(tables.chatMessages)
     // register function
-    conn.db.chatMessage.onInsert(onInsert_Message)
+    conn.db.chatMessages.onInsert(onInsert_Message)
   }
 
   function cleanUp(){
     // unregister function
-    conn.db.chatMessage.onInsert(onInsert_Message)
+    conn.db.chatMessages.onInsert(onInsert_Message)
   }
 
   setupDBChatMessage();

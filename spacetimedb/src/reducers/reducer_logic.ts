@@ -37,7 +37,7 @@ export const send_chat_message = spacetimedb.reducer({text:t.string()}, (ctx, {t
 
   const setFromNow = ctx.timestamp.microsSinceUnixEpoch + 1_000_000n;
 
-  ctx.db.chatMessage.insert({
+  ctx.db.chatMessages.insert({
     id: 0n,
     created_at: ctx.timestamp,
     text: text,
@@ -49,4 +49,11 @@ export const send_chat_message = spacetimedb.reducer({text:t.string()}, (ctx, {t
     scheduled_at: ScheduleAt.time(setFromNow),
     message: text
   });
+});
+
+// for debug 
+export const clear_messages = spacetimedb.reducer((ctx) => {
+  for(const message of ctx.db.chatMessages.iter()){
+    ctx.db.chatMessages.id.delete(message.id);
+  }
 });
